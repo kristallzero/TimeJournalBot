@@ -10,7 +10,7 @@ One commit per task. Work top to bottom.
 
 ## Core Logging
 
-- [ ] `/start` — welcome message + persistent reply keyboard built from user's events
+- [x] `/start` — welcome message + persistent reply keyboard built from user's events
 - [ ] Instant event logging — tap reply button → insert log row → confirm message
 - [ ] Duration event toggle — tap button → start if idle, stop (with elapsed) if running
 - [ ] `⏱ Active` button — show all currently running duration events
