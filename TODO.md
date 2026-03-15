@@ -5,7 +5,7 @@ One commit per task. Work top to bottom.
 ## Foundation
 
 - [x] Init project: `package.json`, `src/index.js`, `.env.example`, connect to Telegram with grammY
-- [ ] Database: write `schema.sql`, add `src/db.js` (pg pool + query helper)
+- [x] Database: write `schema.sql`, add `src/db.js` (pg pool + query helper)
 - [ ] Seed default events for new users on `/start`
 
 ## Core Logging
