@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { Bot } from 'grammy';
 import { upsertUser, seedDefaultEvents } from './seed.js';
 import { buildKeyboard } from './keyboard.js';
-import { findEventByButton, insertLog, formatTime } from './log.js';
+import { findEventByButton, insertLog, formatTime, findActiveSession, formatDuration } from './log.js';
 import { query } from './db.js';
 
 const token = process.env.BOT_TOKEN;
@@ -32,15 +32,30 @@ bot.on('message:text', async (ctx) => {
 
   const userId = ctx.from.id;
   const event = await findEventByButton(userId, text);
-  if (!event || event.kind !== 'instant') return;
+  if (!event) return;
 
   const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
   const tz = rows[0]?.tz ?? 'UTC';
 
-  const log = await insertLog(userId, event.id, 'instant');
-  const time = formatTime(log.ts, tz);
+  if (event.kind === 'instant') {
+    const log = await insertLog(userId, event.id, 'instant');
+    const time = formatTime(log.ts, tz);
+    return ctx.reply(`${event.emoji} ${event.label} — logged at ${time}`);
+  }
 
-  return ctx.reply(`${event.emoji} ${event.label} — logged at ${time}`);
+  if (event.kind === 'duration') {
+    const active = await findActiveSession(userId, event.id);
+    if (!active) {
+      const log = await insertLog(userId, event.id, 'start');
+      const time = formatTime(log.ts, tz);
+      return ctx.reply(`${event.emoji} ${event.label} started — ${time}`);
+    } else {
+      const log = await insertLog(userId, event.id, 'stop');
+      const elapsed = formatDuration(new Date(log.ts) - new Date(active.ts));
+      const time = formatTime(log.ts, tz);
+      return ctx.reply(`${event.emoji} ${event.label} stopped — ${time} (${elapsed})`);
+    }
+  }
 });
 
 bot.catch((err) => {
