@@ -3,7 +3,7 @@ import { Bot } from 'grammy';
 import { upsertUser, seedDefaultEvents, getEvents } from './seed.js';
 import { buildLogKeyboard, handleLogTap, buildDeleteButton, deleteLog } from './logs.js';
 import { buildKeyboard } from './keyboard.js';
-import { findEventByButton, insertLog, formatTime, findActiveSession, formatDuration } from './log.js';
+import { findEventByButton, insertLog, formatTime, findActiveSession, findAllActiveSessions, formatDuration } from './log.js';
 import { query } from './db.js';
 import renderToday from './today.js';
 import { renderActive } from './active.js';
@@ -22,9 +22,11 @@ if (!token) {
 const bot = new Bot(token);
 
 bot.command('log', async (ctx) => {
-    const events = await getEvents(ctx.from.id);
+    const userId = ctx.from.id;
+    const [events, sessions] = await Promise.all([getEvents(userId), findAllActiveSessions(userId)]);
     if (events.length === 0) return ctx.reply('No events configured. Use /events to add some.');
-    return ctx.reply('Log an event:', { reply_markup: buildLogKeyboard(events) });
+    const activeEventIds = new Set(sessions.map((s) => s.event_id));
+    return ctx.reply('Log an event:', { reply_markup: buildLogKeyboard(events, activeEventIds) });
 });
 
 bot.callbackQuery(/^log:(\d+)$/, async (ctx) => {

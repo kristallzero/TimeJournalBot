@@ -2,10 +2,12 @@ import { InlineKeyboard } from 'grammy';
 import { query } from './db.js';
 import { findActiveSession, insertLog, formatTime, formatDuration } from './log.js';
 
-export function buildLogKeyboard(events) {
+export function buildLogKeyboard(events, activeEventIds = new Set()) {
     const kb = new InlineKeyboard();
     events.forEach((e, i) => {
-        kb.text(`${e.emoji} ${e.label}`, `log:${e.id}`);
+        let label = `${e.emoji} ${e.label}`;
+        if (e.kind === 'duration') label += activeEventIds.has(e.id) ? ' ⏸' : ' ▶';
+        kb.text(label, `log:${e.id}`);
         if ((i + 1) % 3 === 0) kb.row();
     });
     return kb;
