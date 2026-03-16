@@ -54,3 +54,4 @@ One commit per task. Work top to bottom.
 - [ ] Highlight active duration events in reply keyboard (visual state sync)
 - [ ] Inline event creation — user types a new event name directly; bot creates + starts it
 - [ ] i18n — externalize all strings, add locale field to `users` table
+- [ ] Checking DB connection on bot starting
