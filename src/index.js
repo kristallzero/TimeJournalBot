@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { Bot } from 'grammy';
 import { upsertUser, seedDefaultEvents } from './seed.js';
 import { buildKeyboard } from './keyboard.js';
-import { findEventByButton, insertLog, formatTime, findActiveSession, formatDuration } from './log.js';
+import { findEventByButton, insertLog, formatTime, findActiveSession, findAllActiveSessions, formatDuration } from './log.js';
 import { query } from './db.js';
 
 const token = process.env.BOT_TOKEN;
@@ -24,13 +24,25 @@ bot.command('start', async (ctx) => {
   );
 });
 
-const UTILITY_BUTTONS = ['⏱ Active', '📋 Today'];
-
 bot.on('message:text', async (ctx) => {
   const text = ctx.message.text;
-  if (UTILITY_BUTTONS.includes(text)) return; // handled separately later
-
   const userId = ctx.from.id;
+
+  if (text === '⏱ Active') {
+    const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
+    const tz = rows[0]?.tz ?? 'UTC';
+    const sessions = await findAllActiveSessions(userId);
+    if (sessions.length === 0) return ctx.reply('No active timers running.');
+    const now = Date.now();
+    const lines = sessions.map((s) => {
+      const elapsed = formatDuration(now - new Date(s.started_at));
+      const since = formatTime(s.started_at, tz);
+      return `${s.emoji} ${s.label} — since ${since} (${elapsed})`;
+    });
+    return ctx.reply(`⏱ Active now:\n\n${lines.join('\n')}`);
+  }
+
+  if (text === '📋 Today') return; // handled by /today (next task)
   const event = await findEventByButton(userId, text);
   if (!event) return;
 

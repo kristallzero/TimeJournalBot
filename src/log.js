@@ -19,6 +19,23 @@ export async function insertLog(userId, eventId, type) {
   return rows[0];
 }
 
+export async function findAllActiveSessions(userId) {
+  const { rows } = await query(
+    `SELECT e.emoji, e.label, l.ts AS started_at
+     FROM logs l
+     JOIN events e ON e.id = l.event_id
+     WHERE l.user_id = $1 AND l.type = 'start'
+       AND NOT EXISTS (
+         SELECT 1 FROM logs l2
+         WHERE l2.user_id = $1 AND l2.event_id = l.event_id
+           AND l2.type = 'stop' AND l2.ts > l.ts
+       )
+     ORDER BY l.ts ASC`,
+    [userId]
+  );
+  return rows;
+}
+
 export async function findActiveSession(userId, eventId) {
   const { rows } = await query(
     `SELECT * FROM logs l
