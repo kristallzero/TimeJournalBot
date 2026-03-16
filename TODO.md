@@ -14,11 +14,12 @@ One commit per task. Work top to bottom.
 - [x] Instant event logging — tap reply button → insert log row → confirm message
 - [x] Duration event toggle — tap button → start if idle, stop (with elapsed) if running
 - [x] `⏱ Active` button — show all currently running duration events
-- [ ] `📋 Today` button — alias for `/today`
+- [x] `⏱ Active` button - alias for `/active`
+- [x] `📋 Today` button — alias for `/today`
 
 ## Commands
 
-- [ ] `/today` — render daily timeline with completed durations and running timers
+- [x] `/today` — render daily timeline with completed durations and running timers
 - [ ] `/log` — inline keyboard with all events; `▶`/`⏸` markers; edit message on tap
 - [ ] `/week` — weekly grid of wake/sleep times + duration totals per event
 - [ ] `/stats [event]` — 30-day stats: avg, total, longest session, busiest day, ASCII bar chart

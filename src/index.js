@@ -2,8 +2,15 @@ import 'dotenv/config';
 import { Bot } from 'grammy';
 import { upsertUser, seedDefaultEvents } from './seed.js';
 import { buildKeyboard } from './keyboard.js';
-import { findEventByButton, insertLog, formatTime, findActiveSession, findAllActiveSessions, formatDuration } from './log.js';
+import { findEventByButton, insertLog, formatTime, findActiveSession, formatDuration } from './log.js';
 import { query } from './db.js';
+import renderToday from './today.js';
+import { renderActive } from './active.js';
+
+async function getUserTz(userId) {
+  const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
+  return rows[0]?.tz ?? 'UTC';
+}
 
 const token = process.env.BOT_TOKEN;
 if (!token) {
@@ -24,48 +31,49 @@ bot.command('start', async (ctx) => {
   );
 });
 
+bot.command('active', async (ctx) => {
+  const tz = await getUserTz(ctx.from.id);
+  return ctx.reply(await renderActive(ctx.from.id, tz));
+});
+
+bot.command('today', async (ctx) => {
+  const tz = await getUserTz(ctx.from.id);
+  return ctx.reply(await renderToday(ctx.from.id, tz));
+});
+
 bot.on('message:text', async (ctx) => {
   const text = ctx.message.text;
   const userId = ctx.from.id;
 
   if (text === '⏱ Active') {
-    const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
-    const tz = rows[0]?.tz ?? 'UTC';
-    const sessions = await findAllActiveSessions(userId);
-    if (sessions.length === 0) return ctx.reply('No active timers running.');
-    const now = Date.now();
-    const lines = sessions.map((s) => {
-      const elapsed = formatDuration(now - new Date(s.started_at));
-      const since = formatTime(s.started_at, tz);
-      return `${s.emoji} ${s.label} — since ${since} (${elapsed})`;
-    });
-    return ctx.reply(`⏱ Active now:\n\n${lines.join('\n')}`);
+    const tz = await getUserTz(userId);
+    return ctx.reply(await renderActive(userId, tz));
   }
 
-  if (text === '📋 Today') return; // handled by /today (next task)
+  if (text === '📋 Today') {
+    const tz = await getUserTz(userId);
+    return ctx.reply(await renderToday(userId, tz));
+  }
+
   const event = await findEventByButton(userId, text);
   if (!event) return;
 
-  const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
-  const tz = rows[0]?.tz ?? 'UTC';
+  const tz = await getUserTz(userId);
 
   if (event.kind === 'instant') {
     const log = await insertLog(userId, event.id, 'instant');
-    const time = formatTime(log.ts, tz);
-    return ctx.reply(`${event.emoji} ${event.label} — logged at ${time}`);
+    return ctx.reply(`${event.emoji} ${event.label} — logged at ${formatTime(log.ts, tz)}`);
   }
 
   if (event.kind === 'duration') {
     const active = await findActiveSession(userId, event.id);
     if (!active) {
       const log = await insertLog(userId, event.id, 'start');
-      const time = formatTime(log.ts, tz);
-      return ctx.reply(`${event.emoji} ${event.label} started — ${time}`);
+      return ctx.reply(`${event.emoji} ${event.label} started — ${formatTime(log.ts, tz)}`);
     } else {
       const log = await insertLog(userId, event.id, 'stop');
       const elapsed = formatDuration(new Date(log.ts) - new Date(active.ts));
-      const time = formatTime(log.ts, tz);
-      return ctx.reply(`${event.emoji} ${event.label} stopped — ${time} (${elapsed})`);
+      return ctx.reply(`${event.emoji} ${event.label} stopped — ${formatTime(log.ts, tz)} (${elapsed})`);
     }
   }
 });
