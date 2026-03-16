@@ -10,6 +10,14 @@ const DEFAULT_EVENTS = [
     { slug: 'sleep', label: 'Sleep', emoji: '🛏', kind: 'instant', sort_order: 6 },
 ];
 
+export async function getEvents(userId) {
+    const { rows } = await query(
+        'SELECT * FROM events WHERE user_id = $1 ORDER BY sort_order ASC',
+        [userId]
+    );
+    return rows;
+}
+
 export async function upsertUser(userId, username) {
     await query(
         `INSERT INTO users (user_id, username)

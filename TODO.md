@@ -20,7 +20,9 @@ One commit per task. Work top to bottom.
 ## Commands
 
 - [x] `/today` — render daily timeline with completed durations and running timers
-- [ ] `/log` — inline keyboard with all events; `▶`/`⏸` markers; edit message on tap
+- [x] `/log` — inline keyboard with all events
+- [ ] `/log` - delete log button
+- [ ] `/log` - `▶`/`⏸` markers to change status for duration event
 - [ ] `/week` — weekly grid of wake/sleep times + duration totals per event
 - [ ] `/stats [event]` — 30-day stats: avg, total, longest session, busiest day, ASCII bar chart
 - [ ] `/events` — list categories with [Add] [Edit] [Remove] [Reorder] buttons
@@ -56,3 +58,4 @@ One commit per task. Work top to bottom.
 - [ ] Inline event creation — user types a new event name directly; bot creates + starts it
 - [ ] i18n — externalize all strings, add locale field to `users` table
 - [ ] Checking DB connection on bot starting
+- [ ] Improve performance for SQL select queries

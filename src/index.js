@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { Bot } from 'grammy';
-import { upsertUser, seedDefaultEvents } from './seed.js';
+import { upsertUser, seedDefaultEvents, getEvents } from './seed.js';
+import { buildLogKeyboard, handleLogTap } from './logs.js';
 import { buildKeyboard } from './keyboard.js';
 import { findEventByButton, insertLog, formatTime, findActiveSession, formatDuration } from './log.js';
 import { query } from './db.js';
@@ -19,6 +20,20 @@ if (!token) {
 }
 
 const bot = new Bot(token);
+
+bot.command('log', async (ctx) => {
+    const events = await getEvents(ctx.from.id);
+    if (events.length === 0) return ctx.reply('No events configured. Use /events to add some.');
+    return ctx.reply('Log an event:', { reply_markup: buildLogKeyboard(events) });
+});
+
+bot.callbackQuery(/^log:(\d+)$/, async (ctx) => {
+    const eventId = parseInt(ctx.match[1], 10);
+    const tz = await getUserTz(ctx.from.id);
+    const text = await handleLogTap(ctx.from.id, eventId, tz);
+    await ctx.editMessageText(text);
+    return ctx.answerCallbackQuery();
+});
 
 bot.command('start', async (ctx) => {
     const { id, username } = ctx.from;
