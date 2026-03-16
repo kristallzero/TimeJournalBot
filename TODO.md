@@ -21,7 +21,7 @@ One commit per task. Work top to bottom.
 
 - [x] `/today` — render daily timeline with completed durations and running timers
 - [x] `/log` — inline keyboard with all events
-- [ ] `/log` - delete log button
+- [x] `/log` - delete log button
 - [ ] `/log` - `▶`/`⏸` markers to change status for duration event
 - [ ] `/week` — weekly grid of wake/sleep times + duration totals per event
 - [ ] `/stats [event]` — 30-day stats: avg, total, longest session, busiest day, ASCII bar chart

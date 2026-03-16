@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Bot } from 'grammy';
 import { upsertUser, seedDefaultEvents, getEvents } from './seed.js';
-import { buildLogKeyboard, handleLogTap } from './logs.js';
+import { buildLogKeyboard, handleLogTap, buildDeleteButton, deleteLog } from './logs.js';
 import { buildKeyboard } from './keyboard.js';
 import { findEventByButton, insertLog, formatTime, findActiveSession, formatDuration } from './log.js';
 import { query } from './db.js';
@@ -30,8 +30,16 @@ bot.command('log', async (ctx) => {
 bot.callbackQuery(/^log:(\d+)$/, async (ctx) => {
     const eventId = parseInt(ctx.match[1], 10);
     const tz = await getUserTz(ctx.from.id);
-    const text = await handleLogTap(ctx.from.id, eventId, tz);
-    await ctx.editMessageText(text);
+    const { text, logId } = await handleLogTap(ctx.from.id, eventId, tz);
+    const reply_markup = logId ? buildDeleteButton(logId) : undefined;
+    await ctx.editMessageText(text, { reply_markup });
+    return ctx.answerCallbackQuery();
+});
+
+bot.callbackQuery(/^del_log:(\d+)$/, async (ctx) => {
+    const logId = parseInt(ctx.match[1], 10);
+    await deleteLog(ctx.from.id, logId);
+    await ctx.deleteMessage();
     return ctx.answerCallbackQuery();
 });
 

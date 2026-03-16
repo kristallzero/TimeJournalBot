@@ -4,21 +4,21 @@ import { formatDuration, formatTime } from './log.js';
 export default async function renderToday(userId, tz) {
     const { rows: logs } = await query(
         `SELECT l.id, l.type, l.ts, l.event_id, e.emoji, e.label, e.kind
-                 FROM logs l
-                 JOIN events e ON e.id = l.event_id
-                 WHERE l.user_id = $1
-                     AND (
-                         (l.ts AT TIME ZONE $2)::date = (NOW() AT TIME ZONE $2)::date
-                         OR (
-                             l.type = 'start'
-                             AND NOT EXISTS (
-                                 SELECT 1 FROM logs l2
-                                 WHERE l2.user_id = $1 AND l2.event_id = l.event_id
-                                     AND l2.type = 'stop' AND l2.ts > l.ts
-                             )
-                         )
-                     )
-                 ORDER BY l.ts ASC`,
+            FROM logs l
+            JOIN events e ON e.id = l.event_id
+            WHERE l.user_id = $1
+                AND (
+                    (l.ts AT TIME ZONE $2)::date = (NOW() AT TIME ZONE $2)::date
+                    OR (
+                        l.type = 'start'
+                        AND NOT EXISTS (
+                            SELECT 1 FROM logs l2
+                            WHERE l2.user_id = $1 AND l2.event_id = l.event_id
+                                AND l2.type = 'stop' AND l2.ts > l.ts
+                        )
+                    )
+                )
+            ORDER BY l.ts ASC`,
         [userId, tz]
     );
 
