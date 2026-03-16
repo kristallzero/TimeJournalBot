@@ -13,7 +13,7 @@ One commit per task. Work top to bottom.
 - [x] `/start` — welcome message + persistent reply keyboard built from user's events
 - [x] Instant event logging — tap reply button → insert log row → confirm message
 - [x] Duration event toggle — tap button → start if idle, stop (with elapsed) if running
-- [ ] `⏱ Active` button — show all currently running duration events
+- [x] `⏱ Active` button — show all currently running duration events
 - [ ] `📋 Today` button — alias for `/today`
 
 ## Commands
@@ -48,3 +48,9 @@ One commit per task. Work top to bottom.
 - [ ] Add Prisma: replace raw SQL with `prisma/schema.prisma` + migrations
 - [ ] Add Zod: validate all incoming callback data and command arguments
 - [ ] Dockerize: write `Dockerfile` + `docker-compose.yml` for bot + postgres
+
+## Backlog (discuss before implementing)
+
+- [ ] Highlight active duration events in reply keyboard (visual state sync)
+- [ ] Inline event creation — user types a new event name directly; bot creates + starts it
+- [ ] i18n — externalize all strings, add locale field to `users` table
