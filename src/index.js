@@ -5,7 +5,7 @@ import { buildLogKeyboard, handleLogTap, buildDeleteButton, deleteLog } from './
 import { buildKeyboard } from './keyboard.js';
 import { findEventByButton, insertLog, formatTime, findActiveSession, findAllActiveSessions, formatDuration } from './log.js';
 import { query } from './db.js';
-import renderToday from './today.js';
+import renderToday, { buildTodayKeyboard } from './today.js';
 import { renderActive } from './active.js';
 import { renderWeek } from './week.js';
 
@@ -64,7 +64,14 @@ bot.command('active', async (ctx) => {
 
 bot.command('today', async (ctx) => {
     const tz = await getUserTz(ctx.from.id);
-    return ctx.reply(await renderToday(ctx.from.id, tz));
+    return ctx.reply(await renderToday(ctx.from.id, tz, 0), { reply_markup: buildTodayKeyboard(0) });
+});
+
+bot.callbackQuery(/^today:(-?\d+)$/, async (ctx) => {
+    const offset = parseInt(ctx.match[1], 10);
+    const tz = await getUserTz(ctx.from.id);
+    await ctx.editMessageText(await renderToday(ctx.from.id, tz, offset), { reply_markup: buildTodayKeyboard(offset) });
+    return ctx.answerCallbackQuery();
 });
 
 bot.command('week', async (ctx) => {
@@ -83,7 +90,7 @@ bot.on('message:text', async (ctx) => {
 
     if (text === '📋 Today') {
         const tz = await getUserTz(userId);
-        return ctx.reply(await renderToday(userId, tz));
+        return ctx.reply(await renderToday(userId, tz, 0), { reply_markup: buildTodayKeyboard(0) });
     }
 
     const event = await findEventByButton(userId, text);
