@@ -69,8 +69,7 @@ bot.command('today', async (ctx) => {
 
 bot.command('week', async (ctx) => {
     const tz = await getUserTz(ctx.from.id);
-    const { text, parse_mode } = await renderWeek(ctx.from.id, tz);
-    return ctx.reply(text, { parse_mode });
+    return ctx.reply(await renderWeek(ctx.from.id, tz));
 });
 
 bot.on('message:text', async (ctx) => {
