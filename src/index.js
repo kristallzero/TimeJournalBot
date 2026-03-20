@@ -7,6 +7,7 @@ import { findEventByButton, insertLog, formatTime, findActiveSession, findAllAct
 import { query } from './db.js';
 import renderToday from './today.js';
 import { renderActive } from './active.js';
+import { renderWeek } from './week.js';
 
 async function getUserTz(userId) {
     const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
@@ -64,6 +65,12 @@ bot.command('active', async (ctx) => {
 bot.command('today', async (ctx) => {
     const tz = await getUserTz(ctx.from.id);
     return ctx.reply(await renderToday(ctx.from.id, tz));
+});
+
+bot.command('week', async (ctx) => {
+    const tz = await getUserTz(ctx.from.id);
+    const { text, parse_mode } = await renderWeek(ctx.from.id, tz);
+    return ctx.reply(text, { parse_mode });
 });
 
 bot.on('message:text', async (ctx) => {
