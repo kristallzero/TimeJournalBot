@@ -1,19 +1,27 @@
+import { InlineKeyboard } from 'grammy';
 import { query } from './db.js';
 import { formatTime, formatDuration } from './log.js';
 
-function getWeekDays(tz) {
+export function buildWeekKeyboard(offset) {
+    const kb = new InlineKeyboard().text('◀ Prev', `week:${offset - 1}`);
+    if (offset < 0) kb.text('Next ▶', `week:${offset + 1}`);
+    return kb;
+}
+
+function getWeekDays(tz, offset = 0) {
     const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
     const today = new Date(todayStr + 'T00:00:00Z');
     const mondayOffset = (today.getUTCDay() + 6) % 7;
+    today.setUTCDate(today.getUTCDate() - mondayOffset + offset * 7);
     return Array.from({ length: 7 }, (_, i) => {
         const d = new Date(today);
-        d.setUTCDate(today.getUTCDate() - mondayOffset + i);
+        d.setUTCDate(today.getUTCDate() + i);
         return d.toISOString().slice(0, 10);
     });
 }
 
-export async function renderWeek(userId, tz) {
-    const days = getWeekDays(tz);
+export async function renderWeek(userId, tz, offset = 0) {
+    const days = getWeekDays(tz, offset);
     const { rows: logs } = await query(
         `SELECT l.id, l.type, l.ts, l.event_id, e.emoji, e.label, e.kind,
                 (l.ts AT TIME ZONE $2)::date::text AS local_date
@@ -66,7 +74,7 @@ export async function renderWeek(userId, tz) {
                     skipped.add(stop.id);
                     output.push(`${time}  ${log.emoji}  ${log.label} — ${formatDuration(new Date(stop.ts) - new Date(log.ts))}`);
                 } else {
-                    output.push(`${time}  ${log.emoji}  ${log.label} — ⏳ running`);
+                    output.push(`${time}  ${log.emoji}  ${log.label} — ${offset === 0 ? '⏳ running' : 'no end'}`);
                 }
             }
         }

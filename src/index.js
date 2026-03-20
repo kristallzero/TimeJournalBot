@@ -7,7 +7,7 @@ import { findEventByButton, insertLog, formatTime, findActiveSession, findAllAct
 import { query } from './db.js';
 import renderToday, { buildTodayKeyboard } from './today.js';
 import { renderActive } from './active.js';
-import { renderWeek } from './week.js';
+import { renderWeek, buildWeekKeyboard } from './week.js';
 
 async function getUserTz(userId) {
     const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
@@ -76,7 +76,14 @@ bot.callbackQuery(/^today:(-?\d+)$/, async (ctx) => {
 
 bot.command('week', async (ctx) => {
     const tz = await getUserTz(ctx.from.id);
-    return ctx.reply(await renderWeek(ctx.from.id, tz));
+    return ctx.reply(await renderWeek(ctx.from.id, tz, 0), { reply_markup: buildWeekKeyboard(0) });
+});
+
+bot.callbackQuery(/^week:(-?\d+)$/, async (ctx) => {
+    const offset = parseInt(ctx.match[1], 10);
+    const tz = await getUserTz(ctx.from.id);
+    await ctx.editMessageText(await renderWeek(ctx.from.id, tz, offset), { reply_markup: buildWeekKeyboard(offset) });
+    return ctx.answerCallbackQuery();
 });
 
 bot.on('message:text', async (ctx) => {
