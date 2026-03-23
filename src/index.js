@@ -129,21 +129,14 @@ bot.on('message:text', async (ctx) => {
 
     const tz = await getUserTz(userId);
 
-    if (event.kind === 'instant') {
-        const log = await insertLog(userId, event.id, 'instant');
-        return ctx.reply(`${event.emoji} ${event.label} — logged at ${formatTime(log.ts, tz)}`);
-    }
-
-    if (event.kind === 'duration') {
-        const active = await findActiveSession(userId, event.id);
-        if (!active) {
-            const log = await insertLog(userId, event.id, 'start');
-            return ctx.reply(`${event.emoji} ${event.label} started — ${formatTime(log.ts, tz)}`);
-        } else {
-            const log = await insertLog(userId, event.id, 'stop');
-            const elapsed = formatDuration(new Date(log.ts) - new Date(active.ts));
-            return ctx.reply(`${event.emoji} ${event.label} stopped — ${formatTime(log.ts, tz)} (${elapsed})`);
-        }
+    const active = await findActiveSession(userId, event.id);
+    if (!active) {
+        const log = await insertLog(userId, event.id, 'start');
+        return ctx.reply(`${event.emoji} ${event.label} started — ${formatTime(log.ts, tz)}`);
+    } else {
+        const log = await insertLog(userId, event.id, 'stop');
+        const elapsed = formatDuration(new Date(log.ts) - new Date(active.ts));
+        return ctx.reply(`${event.emoji} ${event.label} stopped — ${formatTime(log.ts, tz)} (${elapsed})`);
     }
 });
 

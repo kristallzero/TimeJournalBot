@@ -18,7 +18,7 @@ export default async function renderToday(userId, tz, offset = 0) {
     let rows;
     if (isToday) {
         ({ rows } = await query(
-            `SELECT l.id, l.type, l.ts, l.event_id, e.emoji, e.label, e.kind
+            `SELECT l.id, l.type, l.ts, l.event_id, e.emoji, e.label
              FROM logs l
              JOIN events e ON e.id = l.event_id
              WHERE l.user_id = $1
@@ -38,7 +38,7 @@ export default async function renderToday(userId, tz, offset = 0) {
         ));
     } else {
         ({ rows } = await query(
-            `SELECT l.id, l.type, l.ts, l.event_id, e.emoji, e.label, e.kind
+            `SELECT l.id, l.type, l.ts, l.event_id, e.emoji, e.label
              FROM logs l
              JOIN events e ON e.id = l.event_id
              WHERE l.user_id = $1
@@ -61,11 +61,6 @@ export default async function renderToday(userId, tz, offset = 0) {
     for (const log of rows) {
         if (skipped.has(log.id)) continue;
         const time = formatTime(log.ts, tz);
-
-        if (log.type === 'instant') {
-            lines.push(`${time}  ${log.emoji}  ${log.label}`);
-            continue;
-        }
 
         if (log.type === 'start') {
             const stop = rows.find(

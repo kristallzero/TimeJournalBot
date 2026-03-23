@@ -1,5 +1,4 @@
-CREATE TYPE event_kind AS ENUM ('instant', 'duration');
-CREATE TYPE log_type AS ENUM ('instant', 'start', 'stop');
+CREATE TYPE log_type AS ENUM ('start', 'stop');
 
 CREATE TABLE users (
     user_id   BIGINT PRIMARY KEY,
@@ -14,7 +13,6 @@ CREATE TABLE events (
     slug       TEXT NOT NULL,
     label      TEXT NOT NULL,
     emoji      TEXT DEFAULT '⏱',
-    kind       event_kind NOT NULL,
     sort_order INT DEFAULT 0,
     UNIQUE (user_id, slug)
 );

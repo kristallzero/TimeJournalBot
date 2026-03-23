@@ -29,42 +29,15 @@ function getLastNDayKeys(n, tz) {
     return result;
 }
 
-function buildBarChart(byDay, kind, tz) {
+function buildBarChart(byDay, tz) {
     const days = getLastNDayKeys(CHART_DAYS, tz);
     const maxVal = Math.max(...days.map((d) => byDay[d.key] || 0));
     return days.map(({ key, label }) => {
         const val = byDay[key] || 0;
         const filled = Math.round((val / maxVal) * BAR_WIDTH);
         const bar = '█'.repeat(filled) + '░'.repeat(BAR_WIDTH - filled);
-        const valStr = kind === 'instant' ? `${val}×` : formatDuration(val);
-        return `${bar} ${label} (${valStr})`;
+        return `${bar} ${label} (${formatDuration(val)})`;
     });
-}
-
-function computeInstantStats(logs, emoji, label, tz) {
-    const byDay = {};
-    for (const log of logs) {
-        const key = getLocalDateKey(log.ts, tz);
-        byDay[key] = (byDay[key] || 0) + 1;
-    }
-
-    const total = logs.length;
-    const avgPerDay = total / STATS_DAYS;
-
-    let busiestDay = null, busiestCount = 0;
-    for (const [day, count] of Object.entries(byDay)) {
-        if (count > busiestCount) { busiestCount = count; busiestDay = day; }
-    }
-
-    const lines = [
-        `📊 ${emoji} ${label} — last ${STATS_DAYS} days`,
-        `\tTotal:      ${total} times`,
-        `\tDaily avg:  ${avgPerDay.toFixed(1)}/day`,
-        `\tBusiest:    ${busiestDay} (${busiestCount}×)`,
-        `\n📈 Last ${CHART_DAYS} days`,
-        ...buildBarChart(byDay, 'instant', tz),
-    ];
-    return lines.join('\n');
 }
 
 function computeDurationStats(logs, emoji, label, tz) {
@@ -102,18 +75,18 @@ function computeDurationStats(logs, emoji, label, tz) {
         `Daily avg:  ${formatDuration(Math.round(avgPerDay))}`,
         `Busiest:    ${busiestDay} (${formatDuration(busiestDur)})`,
         `\n📈 Last ${CHART_DAYS} days`,
-        ...buildBarChart(byDay, 'duration', tz),
+        ...buildBarChart(byDay, tz),
     ];
     return lines.join('\n');
 }
 
 export async function renderStats(userId, eventId, tz) {
     const { rows: eventRows } = await query(
-        'SELECT emoji, label, kind FROM events WHERE id = $1 AND user_id = $2',
+        'SELECT emoji, label FROM events WHERE id = $1 AND user_id = $2',
         [eventId, userId]
     );
     if (!eventRows.length) return 'Event not found.';
-    const { emoji, label, kind } = eventRows[0];
+    const { emoji, label } = eventRows[0];
 
     const { rows: logs } = await query(
         `SELECT type, ts FROM logs
@@ -125,9 +98,7 @@ export async function renderStats(userId, eventId, tz) {
 
     if (!logs.length) return `${emoji} ${label} — no data in the last ${STATS_DAYS} days.`;
 
-    return kind === 'instant'
-        ? computeInstantStats(logs, emoji, label, tz)
-        : computeDurationStats(logs, emoji, label, tz);
+    return computeDurationStats(logs, emoji, label, tz);
 }
 
 export async function buildStatsKeyboard(userId) {
@@ -142,7 +113,7 @@ export async function buildStatsKeyboard(userId) {
 
 export async function findEventByLabel(userId, label) {
     const { rows } = await query(
-        `SELECT id, emoji, label, kind FROM events WHERE user_id = $1 AND LOWER(label) = LOWER($2)`,
+        `SELECT id, emoji, label FROM events WHERE user_id = $1 AND LOWER(label) = LOWER($2)`,
         [userId, label]
     );
     return rows[0] ?? null;

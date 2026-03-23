@@ -1,13 +1,12 @@
 import { query } from './db.js';
 
-const DEFAULT_EVENTS = [
-    { slug: 'woke_up', label: 'Woke up', emoji: '☀️', kind: 'instant', sort_order: 0 },
-    { slug: 'breakfast', label: 'Breakfast', emoji: '🍳', kind: 'instant', sort_order: 1 },
-    { slug: 'college', label: 'College', emoji: '🚌', kind: 'instant', sort_order: 2 },
-    { slug: 'gaming', label: 'Gaming', emoji: '🎮', kind: 'duration', sort_order: 3 },
-    { slug: 'youtube', label: 'YouTube', emoji: '📺', kind: 'duration', sort_order: 4 },
-    { slug: 'study', label: 'Study', emoji: '📖', kind: 'duration', sort_order: 5 },
-    { slug: 'sleep', label: 'Sleep', emoji: '🛏', kind: 'instant', sort_order: 6 },
+const DEFAULT_EVENTS = [ 
+    { slug: 'breakfast', label: 'Breakfast', emoji: '🍳', sort_order: 0 },
+    { slug: 'college', label: 'College', emoji: '🚌', sort_order: 1 },
+    { slug: 'gaming', label: 'Gaming', emoji: '🎮', sort_order: 2 },
+    { slug: 'youtube', label: 'YouTube', emoji: '📺', sort_order: 3 },
+    { slug: 'study', label: 'Study', emoji: '📖', sort_order: 4 },
+    { slug: 'sleep', label: 'Sleep', emoji: '🛏', sort_order: 5 },
 ];
 
 export async function getEvents(userId) {
@@ -36,9 +35,9 @@ export async function seedDefaultEvents(userId) {
 
     for (const e of DEFAULT_EVENTS) {
         await query(
-            `INSERT INTO events (user_id, slug, label, emoji, kind, sort_order)
-                         VALUES ($1, $2, $3, $4, $5, $6)`,
-            [userId, e.slug, e.label, e.emoji, e.kind, e.sort_order]
+            `INSERT INTO events (user_id, slug, label, emoji, sort_order)
+                         VALUES ($1, $2, $3, $4, $5)`,
+            [userId, e.slug, e.label, e.emoji, e.sort_order]
         );
     }
 }

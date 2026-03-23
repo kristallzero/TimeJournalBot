@@ -5,9 +5,8 @@ import { findActiveSession, insertLog, formatTime, formatDuration } from './log.
 export function buildLogKeyboard(events, activeEventIds = new Set()) {
     const kb = new InlineKeyboard();
     events.forEach((e, i) => {
-        let label = `${e.emoji} ${e.label}`;
-        if (e.kind === 'duration') label += activeEventIds.has(e.id) ? ' ⏸' : ' ▶';
-        kb.text(label, `log:${e.id}`);
+        const marker = activeEventIds.has(e.id) ? '⏸' : '▶';
+        kb.text(`${e.emoji} ${e.label} ${marker}`, `log:${e.id}`);
         if ((i + 1) % 3 === 0) kb.row();
     });
     return kb;
@@ -24,14 +23,6 @@ export async function handleLogTap(userId, eventId, tz) {
     );
     const event = rows[0];
     if (!event) return { text: 'Event not found.', logId: null };
-
-    if (event.kind === 'instant') {
-        const log = await insertLog(userId, event.id, 'instant');
-        return {
-            text: `${event.emoji} ${event.label} — logged at ${formatTime(log.ts, tz)}`,
-            logId: log.id,
-        };
-    }
 
     const active = await findActiveSession(userId, event.id);
     if (!active) {

@@ -23,7 +23,7 @@ function getWeekDays(tz, offset = 0) {
 export async function renderWeek(userId, tz, offset = 0) {
     const days = getWeekDays(tz, offset);
     const { rows: logs } = await query(
-        `SELECT l.id, l.type, l.ts, l.event_id, e.emoji, e.label, e.kind,
+        `SELECT l.id, l.type, l.ts, l.event_id, e.emoji, e.label,
                 (l.ts AT TIME ZONE $2)::date::text AS local_date
          FROM logs l
          JOIN events e ON e.id = l.event_id
@@ -63,9 +63,7 @@ export async function renderWeek(userId, tz, offset = 0) {
         for (const log of dayLogs) {
             if (skipped.has(log.id)) continue;
             const time = formatTime(log.ts, tz);
-            if (log.type === 'instant') {
-                output.push(`${time}  ${log.emoji}  ${log.label}`);
-            } else if (log.type === 'start') {
+            if (log.type === 'start') {
                 const stop = dayLogs.find(
                     (l) => l.event_id === log.event_id && l.type === 'stop'
                         && new Date(l.ts) > new Date(log.ts) && !skipped.has(l.id)
