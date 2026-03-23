@@ -30,6 +30,22 @@ export async function renderEvents(userId) {
     return { text: `📋 Your events:\n\n${lines.join('\n')}`, events };
 }
 
+// userId -> { step: 'name' | 'emoji', name?: string }
+export const addState = new Map();
+
+export async function addEvent(userId, label, emoji) {
+    const slug = label.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+    const { rows } = await query(
+        'SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM events WHERE user_id = $1',
+        [userId]
+    );
+    const sortOrder = rows[0].next;
+    await query(
+        'INSERT INTO events (user_id, slug, label, emoji, sort_order) VALUES ($1, $2, $3, $4, $5)',
+        [userId, slug, label, emoji, sortOrder]
+    );
+}
+
 export async function moveEvent(userId, eventId, direction) {
     const events = await getEventsForManage(userId);
     const idx = events.findIndex((e) => e.id === eventId);

@@ -9,7 +9,7 @@ import renderToday, { buildTodayKeyboard } from './today.js';
 import { renderActive } from './active.js';
 import { renderWeek, buildWeekKeyboard } from './week.js';
 import { renderStats, buildStatsKeyboard, findEventByLabel } from './stats.js';
-import { renderEvents, buildEventsKeyboard, moveEvent } from './events.js';
+import { renderEvents, buildEventsKeyboard, moveEvent, addState, addEvent } from './events.js';
 
 async function getUserTz(userId) {
     const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
@@ -106,6 +106,12 @@ bot.command('events', async (ctx) => {
 
 bot.callbackQuery('noop', (ctx) => ctx.answerCallbackQuery());
 
+bot.callbackQuery('event_add', async (ctx) => {
+    addState.set(ctx.from.id, { step: 'name' });
+    await ctx.answerCallbackQuery();
+    return ctx.reply('Enter event name:');
+});
+
 bot.callbackQuery(/^event_(up|down):(\d+)$/, async (ctx) => {
     const direction = ctx.match[1];
     const eventId = parseInt(ctx.match[2], 10);
@@ -130,6 +136,20 @@ bot.callbackQuery(/^week:(-?\d+)$/, async (ctx) => {
 bot.on('message:text', async (ctx) => {
     const text = ctx.message.text;
     const userId = ctx.from.id;
+
+    const state = addState.get(userId);
+    if (state) {
+        if (state.step === 'name') {
+            addState.set(userId, { step: 'emoji', name: text });
+            return ctx.reply('Enter an emoji:');
+        }
+        if (state.step === 'emoji') {
+            addState.delete(userId);
+            await addEvent(userId, state.name, text);
+            const { text: evText, events } = await renderEvents(userId);
+            return ctx.reply(evText, { reply_markup: buildEventsKeyboard(events) });
+        }
+    }
 
     if (text === '⏱ Active') {
         const tz = await getUserTz(userId);
