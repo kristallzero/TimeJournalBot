@@ -29,8 +29,12 @@ One commit per task. Work top to bottom.
 - [x] `/stats [event]` — 30-day stats: avg, total, longest session, busiest day, ASCII bar chart
 - [x] `/stats` - Stats button in the keyboard
 - [ ] `/events` — list categories with [Add] [Edit] [Remove] [Reorder] buttons
-- [ ] `/events` add flow — conversational: name → emoji → kind (instant/duration)
-- [ ] `/edit` — show last 5 entries as inline buttons; accept new HH:MM or "delete"
+- [ ] `/events` - add events (flow — conversational: name, then emoji)
+- [ ] `/events` - edit events
+- [ ] `/events` - remove events
+- [ ] `/events` - reorder events
+- [ ] `/deletelog` - show last 10 logs in inline buttons, clicking on them deletes the log
+- [ ] `/deletelog` - inline buttons for navigating logs' pages
 - [ ] `/backlog <event> <HH:MM> [date]` — insert a log row with a past timestamp
 - [ ] `/export` — send today as text, or full data as CSV/JSON file
 
