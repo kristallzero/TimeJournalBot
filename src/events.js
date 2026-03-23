@@ -33,6 +33,17 @@ export async function renderEvents(userId) {
 // userId -> { step: 'name' | 'emoji', name?: string }
 export const addState = new Map();
 
+// userId -> { step: 'name' | 'emoji', eventId, name?: string }
+export const editState = new Map();
+
+export async function updateEvent(userId, eventId, label, emoji) {
+    const slug = label.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+    await query(
+        'UPDATE events SET label = $1, emoji = $2, slug = $3 WHERE id = $4 AND user_id = $5',
+        [label, emoji, slug, eventId, userId]
+    );
+}
+
 export async function addEvent(userId, label, emoji) {
     const slug = label.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
     const { rows } = await query(

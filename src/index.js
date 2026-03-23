@@ -9,7 +9,7 @@ import renderToday, { buildTodayKeyboard } from './today.js';
 import { renderActive } from './active.js';
 import { renderWeek, buildWeekKeyboard } from './week.js';
 import { renderStats, buildStatsKeyboard, findEventByLabel } from './stats.js';
-import { renderEvents, buildEventsKeyboard, moveEvent, addState, addEvent } from './events.js';
+import { renderEvents, buildEventsKeyboard, moveEvent, addState, addEvent, editState, updateEvent } from './events.js';
 
 async function getUserTz(userId) {
     const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
@@ -112,6 +112,13 @@ bot.callbackQuery('event_add', async (ctx) => {
     return ctx.reply('Enter event name:');
 });
 
+bot.callbackQuery(/^event_edit:(\d+)$/, async (ctx) => {
+    const eventId = parseInt(ctx.match[1], 10);
+    editState.set(ctx.from.id, { step: 'name', eventId });
+    await ctx.answerCallbackQuery();
+    return ctx.reply('Enter new name:');
+});
+
 bot.callbackQuery(/^event_(up|down):(\d+)$/, async (ctx) => {
     const direction = ctx.match[1];
     const eventId = parseInt(ctx.match[2], 10);
@@ -138,17 +145,32 @@ bot.on('message:text', async (ctx) => {
     const text = ctx.message.text;
     const userId = ctx.from.id;
 
-    const state = addState.get(userId);
-    if (state) {
-        if (state.step === 'name') {
+    const addSt = addState.get(userId);
+    if (addSt) {
+        if (addSt.step === 'name') {
             addState.set(userId, { step: 'emoji', name: text });
             return ctx.reply('Enter an emoji:');
         }
-        if (state.step === 'emoji') {
+        if (addSt.step === 'emoji') {
             addState.delete(userId);
-            await addEvent(userId, state.name, text);
+            await addEvent(userId, addSt.name, text);
             const { text: evText, events } = await renderEvents(userId);
             await ctx.reply('✅ Event added.', { reply_markup: await buildKeyboard(userId) });
+            return ctx.reply(evText, { reply_markup: buildEventsKeyboard(events) });
+        }
+    }
+
+    const editSt = editState.get(userId);
+    if (editSt) {
+        if (editSt.step === 'name') {
+            editState.set(userId, { ...editSt, step: 'emoji', name: text });
+            return ctx.reply('Enter new emoji:');
+        }
+        if (editSt.step === 'emoji') {
+            editState.delete(userId);
+            await updateEvent(userId, editSt.eventId, editSt.name, text);
+            const { text: evText, events } = await renderEvents(userId);
+            await ctx.reply('✅ Event updated.', { reply_markup: await buildKeyboard(userId) });
             return ctx.reply(evText, { reply_markup: buildEventsKeyboard(events) });
         }
     }
