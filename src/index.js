@@ -8,6 +8,7 @@ import { query } from './db.js';
 import renderToday, { buildTodayKeyboard } from './today.js';
 import { renderActive } from './active.js';
 import { renderWeek, buildWeekKeyboard } from './week.js';
+import { renderStats, buildStatsKeyboard, findEventByLabel } from './stats.js';
 
 async function getUserTz(userId) {
     const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
@@ -71,6 +72,29 @@ bot.callbackQuery(/^today:(-?\d+)$/, async (ctx) => {
     const offset = parseInt(ctx.match[1], 10);
     const tz = await getUserTz(ctx.from.id);
     await ctx.editMessageText(await renderToday(ctx.from.id, tz, offset), { reply_markup: buildTodayKeyboard(offset) });
+    return ctx.answerCallbackQuery();
+});
+
+bot.command('stats', async (ctx) => {
+    const userId = ctx.from.id;
+    const arg = ctx.match?.trim();
+    const tz = await getUserTz(userId);
+
+    if (!arg) {
+        const kb = await buildStatsKeyboard(userId);
+        return ctx.reply('Stats for which event?', { reply_markup: kb });
+    }
+
+    const event = await findEventByLabel(userId, arg);
+    if (!event) return ctx.reply(`Event "${arg}" not found.`);
+
+    return ctx.reply(await renderStats(userId, event.id, tz));
+});
+
+bot.callbackQuery(/^stats:(\d+)$/, async (ctx) => {
+    const eventId = parseInt(ctx.match[1], 10);
+    const tz = await getUserTz(ctx.from.id);
+    await ctx.editMessageText(await renderStats(ctx.from.id, eventId, tz));
     return ctx.answerCallbackQuery();
 });
 

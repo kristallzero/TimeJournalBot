@@ -26,7 +26,7 @@ One commit per task. Work top to bottom.
 - [x] `/week` — weekly grid of wake/sleep times + duration totals per event
 - [x] `/today` - buttons "previous day" and "next day" for selecting the day
 - [x] `/week` - buttons "previous" and "next week" for selecting the week
-- [ ] `/stats [event]` — 30-day stats: avg, total, longest session, busiest day, ASCII bar chart
+- [x] `/stats [event]` — 30-day stats: avg, total, longest session, busiest day, ASCII bar chart
 - [ ] `/events` — list categories with [Add] [Edit] [Remove] [Reorder] buttons
 - [ ] `/events` add flow — conversational: name → emoji → kind (instant/duration)
 - [ ] `/edit` — show last 5 entries as inline buttons; accept new HH:MM or "delete"
