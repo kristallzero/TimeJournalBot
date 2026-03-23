@@ -118,7 +118,8 @@ bot.callbackQuery(/^event_(up|down):(\d+)$/, async (ctx) => {
     await moveEvent(ctx.from.id, eventId, direction);
     const { text, events } = await renderEvents(ctx.from.id);
     await ctx.editMessageText(text, { reply_markup: buildEventsKeyboard(events) });
-    return ctx.answerCallbackQuery();
+    await ctx.answerCallbackQuery();
+    await ctx.reply('✅ Reordered.', { reply_markup: await buildKeyboard(ctx.from.id) });
 });
 
 bot.command('week', async (ctx) => {
@@ -147,6 +148,7 @@ bot.on('message:text', async (ctx) => {
             addState.delete(userId);
             await addEvent(userId, state.name, text);
             const { text: evText, events } = await renderEvents(userId);
+            await ctx.reply('✅ Event added.', { reply_markup: await buildKeyboard(userId) });
             return ctx.reply(evText, { reply_markup: buildEventsKeyboard(events) });
         }
     }
