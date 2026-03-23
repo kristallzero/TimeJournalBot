@@ -9,6 +9,7 @@ import renderToday, { buildTodayKeyboard } from './today.js';
 import { renderActive } from './active.js';
 import { renderWeek, buildWeekKeyboard } from './week.js';
 import { renderStats, buildStatsKeyboard, findEventByLabel } from './stats.js';
+import { renderEvents, buildEventsKeyboard, moveEvent } from './events.js';
 
 async function getUserTz(userId) {
     const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
@@ -95,6 +96,22 @@ bot.callbackQuery(/^stats:(\d+)$/, async (ctx) => {
     const eventId = parseInt(ctx.match[1], 10);
     const tz = await getUserTz(ctx.from.id);
     await ctx.editMessageText(await renderStats(ctx.from.id, eventId, tz));
+    return ctx.answerCallbackQuery();
+});
+
+bot.command('events', async (ctx) => {
+    const { text, events } = await renderEvents(ctx.from.id);
+    return ctx.reply(text, { reply_markup: buildEventsKeyboard(events) });
+});
+
+bot.callbackQuery('noop', (ctx) => ctx.answerCallbackQuery());
+
+bot.callbackQuery(/^event_(up|down):(\d+)$/, async (ctx) => {
+    const direction = ctx.match[1];
+    const eventId = parseInt(ctx.match[2], 10);
+    await moveEvent(ctx.from.id, eventId, direction);
+    const { text, events } = await renderEvents(ctx.from.id);
+    await ctx.editMessageText(text, { reply_markup: buildEventsKeyboard(events) });
     return ctx.answerCallbackQuery();
 });
 

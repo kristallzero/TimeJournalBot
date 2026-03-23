@@ -28,7 +28,7 @@ One commit per task. Work top to bottom.
 - [x] `/week` - buttons "previous" and "next week" for selecting the week
 - [x] `/stats [event]` — 30-day stats: avg, total, longest session, busiest day, ASCII bar chart
 - [x] `/stats` - Stats button in the keyboard
-- [ ] `/events` — list categories with [Add] [Edit] [Remove] [Reorder] buttons
+- [x] `/events` — list categories with [Add] [Edit] [Remove] [Reorder] buttons
 - [ ] `/events` - add events (flow — conversational: name, then emoji)
 - [ ] `/events` - edit events
 - [ ] `/events` - remove events
@@ -63,6 +63,7 @@ One commit per task. Work top to bottom.
 
 - [ ] Highlight active duration events in reply keyboard (visual state sync)
 - [ ] Show "no information" time in /today, /week and /stats
+- [ ] Add try catch construction
 - [ ] Inline event creation — user types a new event name directly; bot creates + starts it
 - [ ] i18n — externalize all strings, add locale field to `users` table
 - [ ] Checking DB connection on bot starting
