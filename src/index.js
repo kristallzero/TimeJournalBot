@@ -124,6 +124,11 @@ bot.on('message:text', async (ctx) => {
         return ctx.reply(await renderToday(userId, tz, 0), { reply_markup: buildTodayKeyboard(0) });
     }
 
+    if (text === '📊 Stats') {
+        const kb = await buildStatsKeyboard(userId);
+        return ctx.reply('Stats for which event?', { reply_markup: kb });
+    }
+
     const event = await findEventByButton(userId, text);
     if (!event) return;
 

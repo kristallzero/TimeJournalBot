@@ -27,7 +27,7 @@ One commit per task. Work top to bottom.
 - [x] `/today` - buttons "previous day" and "next day" for selecting the day
 - [x] `/week` - buttons "previous" and "next week" for selecting the week
 - [x] `/stats [event]` — 30-day stats: avg, total, longest session, busiest day, ASCII bar chart
-- [ ] `/stats` - Stats button in the keyboard
+- [x] `/stats` - Stats button in the keyboard
 - [ ] `/events` — list categories with [Add] [Edit] [Remove] [Reorder] buttons
 - [ ] `/events` add flow — conversational: name → emoji → kind (instant/duration)
 - [ ] `/edit` — show last 5 entries as inline buttons; accept new HH:MM or "delete"

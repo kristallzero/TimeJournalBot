@@ -21,7 +21,7 @@ export async function buildKeyboard(userId) {
 
     // utility row
     if (events.length % 3 !== 0) kb.row();
-    kb.text('⏱ Active').text('📋 Today');
+    kb.text('⏱ Active').text('📋 Today').text('📊 Stats');
 
     return kb.resized().persistent();
 }
