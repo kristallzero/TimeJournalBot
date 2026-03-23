@@ -57,6 +57,25 @@ export async function addEvent(userId, label, emoji) {
     );
 }
 
+export async function getEvent(userId, eventId) {
+    const { rows } = await query(
+        'SELECT id, emoji, label FROM events WHERE id = $1 AND user_id = $2',
+        [eventId, userId]
+    );
+    return rows[0] ?? null;
+}
+
+export function buildRemoveConfirmKeyboard(eventId) {
+    return new InlineKeyboard()
+        .text('✅ Yes, delete', `event_remove_confirm:${eventId}`)
+        .text('❌ No', 'event_remove_cancel');
+}
+
+export async function removeEvent(userId, eventId) {
+    await query('DELETE FROM logs WHERE event_id = $1 AND user_id = $2', [eventId, userId]);
+    await query('DELETE FROM events WHERE id = $1 AND user_id = $2', [eventId, userId]);
+}
+
 export async function moveEvent(userId, eventId, direction) {
     const events = await getEventsForManage(userId);
     const idx = events.findIndex((e) => e.id === eventId);

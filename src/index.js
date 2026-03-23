@@ -9,7 +9,7 @@ import renderToday, { buildTodayKeyboard } from './today.js';
 import { renderActive } from './active.js';
 import { renderWeek, buildWeekKeyboard } from './week.js';
 import { renderStats, buildStatsKeyboard, findEventByLabel } from './stats.js';
-import { renderEvents, buildEventsKeyboard, moveEvent, addState, addEvent, editState, updateEvent } from './events.js';
+import { renderEvents, buildEventsKeyboard, moveEvent, addState, addEvent, editState, updateEvent, removeEvent, buildRemoveConfirmKeyboard, getEvent } from './events.js';
 
 async function getUserTz(userId) {
     const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
@@ -117,6 +117,32 @@ bot.callbackQuery(/^event_edit:(\d+)$/, async (ctx) => {
     editState.set(ctx.from.id, { step: 'name', eventId });
     await ctx.answerCallbackQuery();
     return ctx.reply('Enter new name:');
+});
+
+bot.callbackQuery(/^event_remove:(\d+)$/, async (ctx) => {
+    const eventId = parseInt(ctx.match[1], 10);
+    const event = await getEvent(ctx.from.id, eventId);
+    if (!event) return ctx.answerCallbackQuery();
+    await ctx.editMessageText(
+        `Are you sure you want to delete ${event.emoji} ${event.label}?`,
+        { reply_markup: buildRemoveConfirmKeyboard(eventId) }
+    );
+    return ctx.answerCallbackQuery();
+});
+
+bot.callbackQuery(/^event_remove_confirm:(\d+)$/, async (ctx) => {
+    const eventId = parseInt(ctx.match[1], 10);
+    await removeEvent(ctx.from.id, eventId);
+    const { text, events } = await renderEvents(ctx.from.id);
+    await ctx.editMessageText(text, { reply_markup: buildEventsKeyboard(events) });
+    await ctx.answerCallbackQuery();
+    await ctx.reply('✅ Event deleted.', { reply_markup: await buildKeyboard(ctx.from.id) });
+});
+
+bot.callbackQuery('event_remove_cancel', async (ctx) => {
+    const { text, events } = await renderEvents(ctx.from.id);
+    await ctx.editMessageText(text, { reply_markup: buildEventsKeyboard(events) });
+    return ctx.answerCallbackQuery();
 });
 
 bot.callbackQuery(/^event_(up|down):(\d+)$/, async (ctx) => {

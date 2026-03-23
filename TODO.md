@@ -31,7 +31,7 @@ One commit per task. Work top to bottom.
 - [x] `/events` — list categories with [Add] [Edit] [Remove] [Reorder] buttons
 - [x] `/events` - add events (flow — conversational: name, then emoji)
 - [x] `/events` - edit events
-- [ ] `/events` - remove events
+- [x] `/events` - remove events
 - [x] `/events` - reorder events
 - [ ] `/deletelog` - show last 10 logs in inline buttons, clicking on them deletes the log
 - [ ] `/deletelog` - inline buttons for navigating logs' pages
