@@ -1,5 +1,5 @@
 CREATE TYPE log_type AS ENUM ('start', 'stop');
-CREATE TYPE reminder_type AS ENUM ('start', 'stop');
+CREATE TYPE reminder_type AS ENUM ('start', 'stop', 'summary');
 
 CREATE TABLE users (
     user_id   BIGINT PRIMARY KEY,
@@ -34,14 +34,14 @@ CREATE INDEX idx_logs_event ON logs(event_id, ts DESC);
 CREATE TABLE remiders (
     id               SERIAL PRIMARY KEY,
     user_id          BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    event_id         INT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    event_id         INT REFERENCES events(id) ON DELETE CASCADE,
     type             reminder_type NOT NULL,
     time_minutes     INT NOT NULL,
     paused           BOOLEAN NOT NULL DEFAULT false,
     last_notified_at TIMESTAMPTZ,
     created          TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (
-        (type = 'start' AND time_minutes BETWEEN 0 AND 1439)
+        (type IN ('start', 'summary') AND time_minutes BETWEEN 0 AND 1439)
         OR (type = 'stop' AND time_minutes > 0)
     )
 );

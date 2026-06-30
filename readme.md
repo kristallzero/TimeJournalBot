@@ -83,7 +83,7 @@ node src/index.js
 | `/events` | Manage your event categories (add/edit/remove) |
 | `/edit` | Correct a recent timestamp |
 | `/backlog <event> <HH:MM> [date]` | Log a past event, or use `/backlog` for guided prompts |
-| `/reminders` | Manage fixed-time start and elapsed-time stop notifications |
+| `/reminders` | Manage start, stop, and daily summary notifications |
 | `/export` | Export full history as TXT, CSV, or JSON |
 
 ## Interaction Design

@@ -1,13 +1,15 @@
 import cron from 'node-cron';
 import { InlineKeyboard } from 'grammy';
 import { query } from './db.js';
+import renderToday from './today.js';
 
 export const reminderState = new Map();
 
 export function buildReminderTypeKeyboard() {
     return new InlineKeyboard()
         .text('▶ Start notification', 'reminder_type:start').row()
-        .text('⏹ Stop notification', 'reminder_type:stop');
+        .text('⏹ Stop notification', 'reminder_type:stop').row()
+        .text('📋 Daily summary', 'reminder_type:summary');
 }
 
 export function buildReminderEventKeyboard(events) {
@@ -22,15 +24,15 @@ export function buildReminderTimeReplyMarkup(type) {
     return {
         force_reply: true,
         selective: true,
-        input_field_placeholder: type === 'start' ? '09:15' : '01:05',
+        input_field_placeholder: type === 'stop' ? '01:05' : '09:15',
     };
 }
 
 export function parseReminderTime(input, type) {
     const value = input.trim();
-    const match = type === 'start'
-        ? value.match(/^([01]?\d|2[0-3]):([0-5]\d)$/)
-        : value.match(/^(\d+):([0-5]\d)$/);
+    const match = type === 'stop'
+        ? value.match(/^(\d+):([0-5]\d)$/)
+        : value.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
     if (!match) return null;
 
     const hours = Number(match[1]);
@@ -43,7 +45,7 @@ export function parseReminderTime(input, type) {
 function formatReminderTime(type, timeMinutes) {
     const hours = Math.floor(timeMinutes / 60);
     const minutes = timeMinutes % 60;
-    if (type === 'start') {
+    if (type !== 'stop') {
         return `at ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
     }
     if (hours === 0) return `after ${minutes}m`;
@@ -55,7 +57,7 @@ export async function renderReminders(userId) {
     const { rows } = await query(
         `SELECT r.id, r.type, r.time_minutes, r.paused, e.emoji, e.label
          FROM remiders r
-         JOIN events e ON e.id = r.event_id
+         LEFT JOIN events e ON e.id = r.event_id
          WHERE r.user_id = $1
          ORDER BY r.id ASC`,
         [userId]
@@ -64,9 +66,18 @@ export async function renderReminders(userId) {
     const keyboard = new InlineKeyboard();
     const lines = ['🔔 Reminders'];
     for (const [index, reminder] of rows.entries()) {
-        const status = reminder.paused ? '⏸' : reminder.type === 'start' ? '▶' : '⏹';
+        const status = reminder.paused
+            ? '⏸'
+            : reminder.type === 'start'
+                ? '▶'
+                : reminder.type === 'stop'
+                    ? '⏹'
+                    : '📋';
+        const subject = reminder.type === 'summary'
+            ? 'Daily summary'
+            : `${reminder.emoji} ${reminder.label}`;
         lines.push(
-            `${index + 1}. ${status} ${reminder.emoji} ${reminder.label} — ${formatReminderTime(reminder.type, reminder.time_minutes)}`
+            `${index + 1}. ${status} ${subject} — ${formatReminderTime(reminder.type, reminder.time_minutes)}`
         );
         keyboard
             .text(`✏️ ${index + 1}`, `reminder_edit:${reminder.id}`)
@@ -88,7 +99,7 @@ export async function getReminder(userId, reminderId) {
     const { rows } = await query(
         `SELECT r.id, r.type, r.event_id, r.time_minutes, e.emoji, e.label
          FROM remiders r
-         JOIN events e ON e.id = r.event_id
+         LEFT JOIN events e ON e.id = r.event_id
          WHERE r.id = $1 AND r.user_id = $2`,
         [reminderId, userId]
     );
@@ -244,6 +255,37 @@ async function sendStopReminders(bot, now) {
     }
 }
 
+async function sendSummaryReminders(bot, now) {
+    const { rows } = await query(
+        `SELECT r.id, r.user_id, r.time_minutes, u.tz
+         FROM remiders r
+         JOIN users u ON u.user_id = r.user_id
+         WHERE r.type = 'summary' AND r.paused = false`
+    );
+
+    for (const reminder of rows) {
+        const local = getLocalMinute(now, reminder.tz);
+        if (local.minute < reminder.time_minutes) continue;
+
+        const { rows: claimed } = await query(
+            `UPDATE remiders SET last_notified_at = NOW()
+             WHERE id = $1
+               AND (
+                   last_notified_at IS NULL
+                   OR (last_notified_at AT TIME ZONE $2)::date < $3::date
+               )
+             RETURNING id`,
+            [reminder.id, reminder.tz, local.date]
+        );
+        if (claimed.length === 0) continue;
+
+        await bot.api.sendMessage(
+            reminder.user_id,
+            await renderToday(reminder.user_id, reminder.tz, 0)
+        );
+    }
+}
+
 let schedulerRunning = false;
 
 export async function runReminderScheduler(bot) {
@@ -253,6 +295,7 @@ export async function runReminderScheduler(bot) {
     try {
         await sendStartReminders(bot, now);
         await sendStopReminders(bot, now);
+        await sendSummaryReminders(bot, now);
     } finally {
         schedulerRunning = false;
     }

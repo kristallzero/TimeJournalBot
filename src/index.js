@@ -176,16 +176,28 @@ bot.callbackQuery(/^reminder_edit:(\d+)$/, async (ctx) => {
     return ctx.answerCallbackQuery();
 });
 
-bot.callbackQuery(/^reminder_type:(start|stop)$/, async (ctx) => {
+bot.callbackQuery(/^reminder_type:(start|stop|summary)$/, async (ctx) => {
     const state = reminderState.get(ctx.from.id);
     if (!state || state.step !== 'type') {
         return ctx.answerCallbackQuery({ text: 'Run /reminders again.' });
     }
 
+    const type = ctx.match[1];
+    if (type === 'summary') {
+        reminderState.set(ctx.from.id, { ...state, step: 'time', type, event: null });
+        await ctx.editMessageText('📋 Daily summary selected.', {
+            reply_markup: { inline_keyboard: [] },
+        });
+        await ctx.answerCallbackQuery();
+        return ctx.reply('What time should the daily summary appear? Send HH:MM.', {
+            reply_markup: buildReminderTimeReplyMarkup(type),
+        });
+    }
+
     const events = await getEvents(ctx.from.id);
     if (events.length === 0) return ctx.answerCallbackQuery({ text: 'No events configured.' });
 
-    reminderState.set(ctx.from.id, { ...state, step: 'event', type: ctx.match[1] });
+    reminderState.set(ctx.from.id, { ...state, step: 'event', type });
     await ctx.editMessageText('Which event?', {
         reply_markup: buildReminderEventKeyboard(events),
     });
@@ -421,7 +433,9 @@ bot.on('message:text', async (ctx) => {
     if (reminderSt?.step === 'time') {
         const timeMinutes = parseReminderTime(text, reminderSt.type);
         if (timeMinutes === null) {
-            const format = reminderSt.type === 'start' ? 'HH:MM, such as 09:15' : 'HH:MM, such as 00:10 or 01:05';
+            const format = reminderSt.type === 'stop'
+                ? 'HH:MM, such as 00:10 or 01:05'
+                : 'HH:MM, such as 09:15';
             return ctx.reply(`Use ${format}.`, {
                 reply_markup: buildReminderTimeReplyMarkup(reminderSt.type),
             });
@@ -429,7 +443,7 @@ bot.on('message:text', async (ctx) => {
 
         await saveReminder(
             userId,
-            reminderSt.event.id,
+            reminderSt.event?.id ?? null,
             reminderSt.type,
             timeMinutes,
             reminderSt.reminderId
