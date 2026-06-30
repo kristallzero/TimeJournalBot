@@ -10,6 +10,7 @@ import { renderActive } from './active.js';
 import { renderWeek, buildWeekKeyboard } from './week.js';
 import { renderStats, buildStatsKeyboard, findEventByLabel } from './stats.js';
 import { renderEvents, buildEventsKeyboard, moveEvent, addState, addEvent, editState, updateEvent, removeEvent, buildRemoveConfirmKeyboard, getEvent } from './events.js';
+import { backlogState, buildBacklogEventKeyboard, buildBacklogTimeReplyMarkup, findBacklogEvent, formatBacklogConfirmation, insertBacklogLog, parseBacklogCommand, parseBacklogDateTime } from './backlog.js';
 
 async function getUserTz(userId) {
     const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
@@ -74,6 +75,54 @@ bot.callbackQuery(/^delete_log:(\d+)(?::(\d+))?$/, async (ctx) => {
     return ctx.answerCallbackQuery({ text: 'Log deleted.' });
 });
 
+bot.command('backlog', async (ctx) => {
+    const userId = ctx.from.id;
+    const arg = ctx.match?.trim();
+    const tz = await getUserTz(userId);
+
+    addState.delete(userId);
+    editState.delete(userId);
+    backlogState.delete(userId);
+
+    if (!arg) {
+        const events = await getEvents(userId);
+        if (events.length === 0) return ctx.reply('No events configured. Use /events to add one.');
+
+        backlogState.set(userId, { step: 'event' });
+        return ctx.reply('What event do you want to backfill?', {
+            reply_markup: buildBacklogEventKeyboard(events),
+        });
+    }
+
+    const parsed = parseBacklogCommand(arg, tz);
+    if (!parsed) {
+        return ctx.reply('Usage: /backlog <event> <HH:MM> [YYYY-MM-DD]');
+    }
+
+    const event = await findBacklogEvent(userId, parsed.eventLabel);
+    if (!event) return ctx.reply(`Event "${parsed.eventLabel}" not found.`);
+
+    const log = await insertBacklogLog(userId, event.id, parsed.time, parsed.date, tz);
+    if (!log) return ctx.reply('Backlog time must not be in the future.');
+    return ctx.reply(formatBacklogConfirmation(event, log, tz));
+});
+
+bot.callbackQuery(/^backlog_event:(\d+)$/, async (ctx) => {
+    const eventId = parseInt(ctx.match[1], 10);
+    const event = await getEvent(ctx.from.id, eventId);
+    if (!event) return ctx.answerCallbackQuery({ text: 'Event not found.' });
+
+    backlogState.set(ctx.from.id, { step: 'datetime', event });
+    await ctx.editMessageText(
+        `${event.emoji} ${event.label} selected.`,
+        { reply_markup: { inline_keyboard: [] } }
+    );
+    await ctx.answerCallbackQuery();
+    return ctx.reply('What time and date? Send HH:MM, or HH:MM YYYY-MM-DD.', {
+        reply_markup: buildBacklogTimeReplyMarkup(),
+    });
+});
+
 bot.command('start', async (ctx) => {
     const { id, username } = ctx.from;
     await upsertUser(id, username);
@@ -133,6 +182,7 @@ bot.command('events', async (ctx) => {
 bot.callbackQuery('noop', (ctx) => ctx.answerCallbackQuery());
 
 bot.callbackQuery('event_add', async (ctx) => {
+    backlogState.delete(ctx.from.id);
     addState.set(ctx.from.id, { step: 'name' });
     await ctx.answerCallbackQuery();
     return ctx.reply('Enter event name:');
@@ -140,6 +190,7 @@ bot.callbackQuery('event_add', async (ctx) => {
 
 bot.callbackQuery(/^event_edit:(\d+)$/, async (ctx) => {
     const eventId = parseInt(ctx.match[1], 10);
+    backlogState.delete(ctx.from.id);
     editState.set(ctx.from.id, { step: 'name', eventId });
     await ctx.answerCallbackQuery();
     return ctx.reply('Enter new name:');
@@ -224,6 +275,37 @@ bot.on('message:text', async (ctx) => {
             const { text: evText, events } = await renderEvents(userId);
             await ctx.reply('✅ Event updated.', { reply_markup: await buildKeyboard(userId) });
             return ctx.reply(evText, { reply_markup: buildEventsKeyboard(events) });
+        }
+    }
+
+    const backlogSt = backlogState.get(userId);
+    if (backlogSt) {
+        if (backlogSt.step === 'event') {
+            const event = await findBacklogEvent(userId, text.trim());
+            if (!event) return ctx.reply(`Event "${text.trim()}" not found. Try another event name.`);
+
+            backlogState.set(userId, { step: 'datetime', event });
+            return ctx.reply('What time and date? Send HH:MM, or HH:MM YYYY-MM-DD.', {
+                reply_markup: buildBacklogTimeReplyMarkup(),
+            });
+        }
+
+        if (backlogSt.step === 'datetime') {
+            const tz = await getUserTz(userId);
+            const parsed = parseBacklogDateTime(text, tz);
+            if (!parsed) return ctx.reply('Use HH:MM, or HH:MM YYYY-MM-DD.');
+
+            const log = await insertBacklogLog(
+                userId,
+                backlogSt.event.id,
+                parsed.time,
+                parsed.date,
+                tz
+            );
+            if (!log) return ctx.reply('Backlog time must not be in the future. Try another time.');
+
+            backlogState.delete(userId);
+            return ctx.reply(formatBacklogConfirmation(backlogSt.event, log, tz));
         }
     }
 

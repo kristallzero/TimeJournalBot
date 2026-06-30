@@ -82,7 +82,7 @@ node src/index.js
 | `/stats [event]` | Per-event statistics for the last 30 days |
 | `/events` | Manage your event categories (add/edit/remove) |
 | `/edit` | Correct a recent timestamp |
-| `/backlog <event> <HH:MM> [date]` | Log a past event you forgot |
+| `/backlog <event> <HH:MM> [date]` | Log a past event, or use `/backlog` for guided prompts |
 | `/reminders` | Configure nudges and conditional alerts |
 | `/export` | Export data as CSV or JSON |
 
