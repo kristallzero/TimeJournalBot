@@ -76,7 +76,7 @@ node src/index.js
 |---|---|
 | `/start` | First launch, shows welcome + reply keyboard |
 | `/log` | Inline keyboard to pick an event manually |
-| `/deletelog` | Delete one of the 10 most recent logs |
+| `/deletelog` | Browse and delete logs, 10 entries per page |
 | `/today` | Chronological timeline for today |
 | `/week` | Weekly summary with totals and averages |
 | `/stats [event]` | Per-event statistics for the last 30 days |

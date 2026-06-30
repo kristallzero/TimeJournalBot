@@ -50,17 +50,26 @@ bot.callbackQuery(/^del_log:(\d+)$/, async (ctx) => {
 
 bot.command('deletelog', async (ctx) => {
     const tz = await getUserTz(ctx.from.id);
-    const { text, keyboard } = await buildDeleteLogsView(ctx.from.id, tz);
+    const { text, keyboard } = await buildDeleteLogsView(ctx.from.id, tz, 0);
     return ctx.reply(text, keyboard ? { reply_markup: keyboard } : {});
 });
 
-bot.callbackQuery(/^delete_log:(\d+)$/, async (ctx) => {
+bot.callbackQuery(/^deletelog_page:(\d+)$/, async (ctx) => {
+    const page = parseInt(ctx.match[1], 10);
+    const tz = await getUserTz(ctx.from.id);
+    const { text, keyboard } = await buildDeleteLogsView(ctx.from.id, tz, page);
+    await ctx.editMessageText(text, { reply_markup: keyboard ?? { inline_keyboard: [] } });
+    return ctx.answerCallbackQuery();
+});
+
+bot.callbackQuery(/^delete_log:(\d+)(?::(\d+))?$/, async (ctx) => {
     const logId = parseInt(ctx.match[1], 10);
+    const page = ctx.match[2] ? parseInt(ctx.match[2], 10) : 0;
     const deleted = await deleteLog(ctx.from.id, logId);
     if (!deleted) return ctx.answerCallbackQuery({ text: 'Log already deleted.' });
 
     const tz = await getUserTz(ctx.from.id);
-    const { text, keyboard } = await buildDeleteLogsView(ctx.from.id, tz);
+    const { text, keyboard } = await buildDeleteLogsView(ctx.from.id, tz, page);
     await ctx.editMessageText(text, { reply_markup: keyboard ?? { inline_keyboard: [] } });
     return ctx.answerCallbackQuery({ text: 'Log deleted.' });
 });

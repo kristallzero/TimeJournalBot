@@ -34,7 +34,7 @@ One commit per task. Work top to bottom.
 - [x] `/events` - remove events
 - [x] `/events` - reorder events
 - [x] `/deletelog` - show last 10 logs in inline buttons, clicking on them deletes the log
-- [ ] `/deletelog` - inline buttons for navigating logs' pages
+- [x] `/deletelog` - inline buttons for navigating logs' pages
 - [ ] `/backlog <event> <HH:MM> [date]` — insert a log row with a past timestamp
 - [ ] `/export` — send today as text, or full data as CSV/JSON file
 
