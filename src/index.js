@@ -11,6 +11,7 @@ import { renderWeek, buildWeekKeyboard } from './week.js';
 import { renderStats, buildStatsKeyboard, findEventByLabel } from './stats.js';
 import { renderEvents, buildEventsKeyboard, moveEvent, addState, addEvent, editState, updateEvent, removeEvent, buildRemoveConfirmKeyboard, getEvent } from './events.js';
 import { backlogState, buildBacklogEventKeyboard, buildBacklogTimeReplyMarkup, findBacklogEvent, formatBacklogConfirmation, insertBacklogLog, parseBacklogCommand, parseBacklogDateTime } from './backlog.js';
+import { buildExportKeyboard, createExportFile } from './export.js';
 
 async function getUserTz(userId) {
     const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
@@ -121,6 +122,18 @@ bot.callbackQuery(/^backlog_event:(\d+)$/, async (ctx) => {
     return ctx.reply('What time and date? Send HH:MM, or HH:MM YYYY-MM-DD.', {
         reply_markup: buildBacklogTimeReplyMarkup(),
     });
+});
+
+bot.command('export', (ctx) => ctx.reply('Choose an export format:', {
+    reply_markup: buildExportKeyboard(),
+}));
+
+bot.callbackQuery(/^export:(txt|csv|json)$/, async (ctx) => {
+    const format = ctx.match[1];
+    await ctx.answerCallbackQuery();
+    const tz = await getUserTz(ctx.from.id);
+    const file = await createExportFile(ctx.from.id, format, tz);
+    return ctx.replyWithDocument(file);
 });
 
 bot.command('start', async (ctx) => {

@@ -84,7 +84,7 @@ node src/index.js
 | `/edit` | Correct a recent timestamp |
 | `/backlog <event> <HH:MM> [date]` | Log a past event, or use `/backlog` for guided prompts |
 | `/reminders` | Configure nudges and conditional alerts |
-| `/export` | Export data as CSV or JSON |
+| `/export` | Export full history as TXT, CSV, or JSON |
 
 ## Interaction Design
 
