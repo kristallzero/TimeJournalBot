@@ -16,6 +16,39 @@ export function buildDeleteButton(logId) {
     return new InlineKeyboard().text('🗑 Delete', `del_log:${logId}`);
 }
 
+export async function buildDeleteLogsView(userId, tz) {
+    const { rows } = await query(
+        `SELECT l.id, l.type, l.ts, e.emoji, e.label
+         FROM logs l
+         JOIN events e ON e.id = l.event_id
+         WHERE l.user_id = $1
+         ORDER BY l.ts DESC
+         LIMIT 10`,
+        [userId]
+    );
+
+    if (rows.length === 0) {
+        return { text: 'No logs to delete.', keyboard: null };
+    }
+
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: tz,
+    });
+    const keyboard = new InlineKeyboard();
+
+    for (const log of rows) {
+        const marker = log.type === 'start' ? '▶' : '⏹';
+        const timestamp = formatter.format(new Date(log.ts));
+        keyboard.text(`🗑 ${timestamp} · ${log.emoji} ${log.label} ${marker}`, `delete_log:${log.id}`).row();
+    }
+
+    return { text: 'Choose a log to delete (newest first):', keyboard };
+}
+
 export async function handleLogTap(userId, eventId, tz) {
     const { rows } = await query(
         'SELECT * FROM events WHERE id = $1 AND user_id = $2',
@@ -42,8 +75,9 @@ export async function handleLogTap(userId, eventId, tz) {
 }
 
 export async function deleteLog(userId, logId) {
-    await query(
-        'DELETE FROM logs WHERE id = $1 AND user_id = $2',
+    const { rows } = await query(
+        'DELETE FROM logs WHERE id = $1 AND user_id = $2 RETURNING id',
         [logId, userId]
     );
+    return rows.length > 0;
 }

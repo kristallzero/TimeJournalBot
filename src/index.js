@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Bot } from 'grammy';
 import { upsertUser, seedDefaultEvents, getEvents } from './seed.js';
-import { buildLogKeyboard, handleLogTap, buildDeleteButton, deleteLog } from './logs.js';
+import { buildLogKeyboard, handleLogTap, buildDeleteButton, buildDeleteLogsView, deleteLog } from './logs.js';
 import { buildKeyboard } from './keyboard.js';
 import { durationBetween, findEventByButton, insertLog, formatTime, findActiveSession, findAllActiveSessions, formatDuration } from './log.js';
 import { query } from './db.js';
@@ -46,6 +46,23 @@ bot.callbackQuery(/^del_log:(\d+)$/, async (ctx) => {
     await deleteLog(ctx.from.id, logId);
     await ctx.deleteMessage();
     return ctx.answerCallbackQuery();
+});
+
+bot.command('deletelog', async (ctx) => {
+    const tz = await getUserTz(ctx.from.id);
+    const { text, keyboard } = await buildDeleteLogsView(ctx.from.id, tz);
+    return ctx.reply(text, keyboard ? { reply_markup: keyboard } : {});
+});
+
+bot.callbackQuery(/^delete_log:(\d+)$/, async (ctx) => {
+    const logId = parseInt(ctx.match[1], 10);
+    const deleted = await deleteLog(ctx.from.id, logId);
+    if (!deleted) return ctx.answerCallbackQuery({ text: 'Log already deleted.' });
+
+    const tz = await getUserTz(ctx.from.id);
+    const { text, keyboard } = await buildDeleteLogsView(ctx.from.id, tz);
+    await ctx.editMessageText(text, { reply_markup: keyboard ?? { inline_keyboard: [] } });
+    return ctx.answerCallbackQuery({ text: 'Log deleted.' });
 });
 
 bot.command('start', async (ctx) => {
