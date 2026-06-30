@@ -61,6 +61,7 @@ One commit per task. Work top to bottom.
 
 ## Backlog (discuss before implementing)
 
+- [ ] Database migration
 - [ ] Highlight active duration events in reply keyboard (visual state sync)
 - [ ] Show "no information" time in /today, /week and /stats
 - [ ] Add try catch construction
