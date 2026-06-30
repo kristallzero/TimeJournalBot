@@ -40,9 +40,9 @@ One commit per task. Work top to bottom.
 
 ## Reminders
 
-- [ ] `/reminders` — list active reminders with [Add] [Edit] [Remove] [Pause all]
-- [ ] Daily reminder at fixed time (e.g. "Log wake up at 10:00 if not yet logged")
-- [ ] Session warning — fire after N hours of continuous active duration event
+- [x] `/reminders` — list active reminders with [Add] [Edit] [Remove] [Pause all]
+- [x] Daily reminder at fixed time (e.g. "Log wake up at 10:00 if not yet logged")
+- [x] Session warning — fire after N hours of continuous active duration event
 - [ ] Daily summary reminder — send `/today` output at configured time
 
 ## Polish

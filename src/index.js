@@ -12,6 +12,7 @@ import { renderStats, buildStatsKeyboard, findEventByLabel } from './stats.js';
 import { renderEvents, buildEventsKeyboard, moveEvent, addState, addEvent, editState, updateEvent, removeEvent, buildRemoveConfirmKeyboard, getEvent } from './events.js';
 import { backlogState, buildBacklogEventKeyboard, buildBacklogTimeReplyMarkup, findBacklogEvent, formatBacklogConfirmation, insertBacklogLog, parseBacklogCommand, parseBacklogDateTime } from './backlog.js';
 import { buildExportKeyboard, createExportFile } from './export.js';
+import { buildReminderEventKeyboard, buildReminderTimeReplyMarkup, buildReminderTypeKeyboard, getReminder, parseReminderTime, reminderState, removeReminder, renderReminders, saveReminder, startReminderScheduler, toggleAllReminders } from './reminders.js';
 
 async function getUserTz(userId) {
     const { rows } = await query('SELECT tz FROM users WHERE user_id = $1', [userId]);
@@ -84,6 +85,7 @@ bot.command('backlog', async (ctx) => {
     addState.delete(userId);
     editState.delete(userId);
     backlogState.delete(userId);
+    reminderState.delete(userId);
 
     if (!arg) {
         const events = await getEvents(userId);
@@ -134,6 +136,97 @@ bot.callbackQuery(/^export:(txt|csv|json)$/, async (ctx) => {
     const tz = await getUserTz(ctx.from.id);
     const file = await createExportFile(ctx.from.id, format, tz);
     return ctx.replyWithDocument(file);
+});
+
+bot.command('reminders', async (ctx) => {
+    const userId = ctx.from.id;
+    addState.delete(userId);
+    editState.delete(userId);
+    backlogState.delete(userId);
+    reminderState.delete(userId);
+
+    const { text, keyboard } = await renderReminders(userId);
+    return ctx.reply(text, { reply_markup: keyboard });
+});
+
+bot.callbackQuery('reminder_add', async (ctx) => {
+    const userId = ctx.from.id;
+    addState.delete(userId);
+    editState.delete(userId);
+    backlogState.delete(userId);
+    reminderState.set(userId, { step: 'type', reminderId: null });
+    await ctx.editMessageText('What kind of notification?', {
+        reply_markup: buildReminderTypeKeyboard(),
+    });
+    return ctx.answerCallbackQuery();
+});
+
+bot.callbackQuery(/^reminder_edit:(\d+)$/, async (ctx) => {
+    const reminderId = parseInt(ctx.match[1], 10);
+    const reminder = await getReminder(ctx.from.id, reminderId);
+    if (!reminder) return ctx.answerCallbackQuery({ text: 'Reminder not found.' });
+
+    addState.delete(ctx.from.id);
+    editState.delete(ctx.from.id);
+    backlogState.delete(ctx.from.id);
+    reminderState.set(ctx.from.id, { step: 'type', reminderId });
+    await ctx.editMessageText('What kind of notification?', {
+        reply_markup: buildReminderTypeKeyboard(),
+    });
+    return ctx.answerCallbackQuery();
+});
+
+bot.callbackQuery(/^reminder_type:(start|stop)$/, async (ctx) => {
+    const state = reminderState.get(ctx.from.id);
+    if (!state || state.step !== 'type') {
+        return ctx.answerCallbackQuery({ text: 'Run /reminders again.' });
+    }
+
+    const events = await getEvents(ctx.from.id);
+    if (events.length === 0) return ctx.answerCallbackQuery({ text: 'No events configured.' });
+
+    reminderState.set(ctx.from.id, { ...state, step: 'event', type: ctx.match[1] });
+    await ctx.editMessageText('Which event?', {
+        reply_markup: buildReminderEventKeyboard(events),
+    });
+    return ctx.answerCallbackQuery();
+});
+
+bot.callbackQuery(/^reminder_event:(\d+)$/, async (ctx) => {
+    const state = reminderState.get(ctx.from.id);
+    if (!state || state.step !== 'event') {
+        return ctx.answerCallbackQuery({ text: 'Run /reminders again.' });
+    }
+
+    const eventId = parseInt(ctx.match[1], 10);
+    const event = await getEvent(ctx.from.id, eventId);
+    if (!event) return ctx.answerCallbackQuery({ text: 'Event not found.' });
+
+    reminderState.set(ctx.from.id, { ...state, step: 'time', event });
+    await ctx.editMessageText(`${event.emoji} ${event.label} selected.`, {
+        reply_markup: { inline_keyboard: [] },
+    });
+    await ctx.answerCallbackQuery();
+
+    const prompt = state.type === 'start'
+        ? 'What time should the daily notification appear? Send HH:MM.'
+        : 'How long after the event starts should I notify you? Send HH:MM, for example 00:10 or 01:05.';
+    return ctx.reply(prompt, { reply_markup: buildReminderTimeReplyMarkup(state.type) });
+});
+
+bot.callbackQuery(/^reminder_remove:(\d+)$/, async (ctx) => {
+    const reminderId = parseInt(ctx.match[1], 10);
+    await removeReminder(ctx.from.id, reminderId);
+    const { text, keyboard } = await renderReminders(ctx.from.id);
+    await ctx.editMessageText(text, { reply_markup: keyboard });
+    return ctx.answerCallbackQuery({ text: 'Reminder removed.' });
+});
+
+bot.callbackQuery('reminder_toggle_all', async (ctx) => {
+    await toggleAllReminders(ctx.from.id);
+    const { text, keyboard } = await renderReminders(ctx.from.id);
+    await ctx.editMessageText(text, { reply_markup: keyboard });
+    return ctx.answerCallbackQuery();
 });
 
 bot.command('start', async (ctx) => {
@@ -196,6 +289,7 @@ bot.callbackQuery('noop', (ctx) => ctx.answerCallbackQuery());
 
 bot.callbackQuery('event_add', async (ctx) => {
     backlogState.delete(ctx.from.id);
+    reminderState.delete(ctx.from.id);
     addState.set(ctx.from.id, { step: 'name' });
     await ctx.answerCallbackQuery();
     return ctx.reply('Enter event name:');
@@ -204,6 +298,7 @@ bot.callbackQuery('event_add', async (ctx) => {
 bot.callbackQuery(/^event_edit:(\d+)$/, async (ctx) => {
     const eventId = parseInt(ctx.match[1], 10);
     backlogState.delete(ctx.from.id);
+    reminderState.delete(ctx.from.id);
     editState.set(ctx.from.id, { step: 'name', eventId });
     await ctx.answerCallbackQuery();
     return ctx.reply('Enter new name:');
@@ -322,6 +417,29 @@ bot.on('message:text', async (ctx) => {
         }
     }
 
+    const reminderSt = reminderState.get(userId);
+    if (reminderSt?.step === 'time') {
+        const timeMinutes = parseReminderTime(text, reminderSt.type);
+        if (timeMinutes === null) {
+            const format = reminderSt.type === 'start' ? 'HH:MM, such as 09:15' : 'HH:MM, such as 00:10 or 01:05';
+            return ctx.reply(`Use ${format}.`, {
+                reply_markup: buildReminderTimeReplyMarkup(reminderSt.type),
+            });
+        }
+
+        await saveReminder(
+            userId,
+            reminderSt.event.id,
+            reminderSt.type,
+            timeMinutes,
+            reminderSt.reminderId
+        );
+        reminderState.delete(userId);
+        const { text: remindersText, keyboard } = await renderReminders(userId);
+        await ctx.reply(reminderSt.reminderId === null ? '✅ Reminder added.' : '✅ Reminder updated.');
+        return ctx.reply(remindersText, { reply_markup: keyboard });
+    }
+
     if (text === '⏱ Active') {
         const tz = await getUserTz(userId);
         return ctx.reply(await renderActive(userId, tz));
@@ -357,5 +475,6 @@ bot.catch((err) => {
     console.error('Bot error:', err);
 });
 
+startReminderScheduler(bot);
 bot.start();
 console.log('Bot is running...');
