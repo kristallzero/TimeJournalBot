@@ -60,6 +60,12 @@ export function formatDuration(ms) {
     return `${minutes}m`;
 }
 
+export function durationBetween(start, end) {
+    const startMinute = Math.floor(new Date(start).getTime() / 60000);
+    const endMinute = Math.floor(new Date(end).getTime() / 60000);
+    return Math.max(0, endMinute - startMinute) * 60000;
+}
+
 export function formatTime(ts, tz) {
     return new Intl.DateTimeFormat('en-GB', {
         hour: '2-digit',

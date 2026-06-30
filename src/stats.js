@@ -1,6 +1,6 @@
 import { InlineKeyboard } from 'grammy';
 import { query } from './db.js';
-import { formatDuration } from './log.js';
+import { durationBetween, formatDuration } from './log.js';
 
 const STATS_DAYS = 30;
 const CHART_DAYS = 7;
@@ -49,7 +49,7 @@ function computeDurationStats(logs, emoji, label, tz) {
             pendingStart = log;
         } else if (log.type === 'stop' && pendingStart) {
             sessions.push({
-                duration: new Date(log.ts) - new Date(pendingStart.ts),
+                duration: durationBetween(pendingStart.ts, log.ts),
                 day: getLocalDateKey(pendingStart.ts, tz),
             });
             pendingStart = null;

@@ -1,6 +1,6 @@
 import { InlineKeyboard } from 'grammy';
 import { query } from './db.js';
-import { formatDuration, formatTime } from './log.js';
+import { durationBetween, formatDuration, formatTime } from './log.js';
 
 export function buildTodayKeyboard(offset) {
     const kb = new InlineKeyboard().text('◀ Prev', `today:${offset - 1}`);
@@ -69,7 +69,7 @@ export default async function renderToday(userId, tz, offset = 0) {
             );
             if (stop) {
                 skipped.add(stop.id);
-                lines.push(`${time}  ${log.emoji}  ${log.label} — ${formatDuration(new Date(stop.ts) - new Date(log.ts))}`);
+                lines.push(`${time}  ${log.emoji}  ${log.label} — ${formatDuration(durationBetween(log.ts, stop.ts))}`);
             } else {
                 lines.push(`${time}  ${log.emoji}  ${log.label} — ${isToday ? '⏳ running' : 'no end'}`);
             }

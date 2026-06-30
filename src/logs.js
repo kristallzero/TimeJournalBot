@@ -1,6 +1,6 @@
 import { InlineKeyboard } from 'grammy';
 import { query } from './db.js';
-import { findActiveSession, insertLog, formatTime, formatDuration } from './log.js';
+import { durationBetween, findActiveSession, insertLog, formatTime, formatDuration } from './log.js';
 
 export function buildLogKeyboard(events, activeEventIds = new Set()) {
     const kb = new InlineKeyboard();
@@ -34,7 +34,7 @@ export async function handleLogTap(userId, eventId, tz) {
     }
 
     const log = await insertLog(userId, event.id, 'stop');
-    const elapsed = formatDuration(new Date(log.ts) - new Date(active.ts));
+    const elapsed = formatDuration(durationBetween(active.ts, log.ts));
     return {
         text: `${event.emoji} ${event.label} stopped — ${formatTime(log.ts, tz)} (${elapsed})`,
         logId: log.id,

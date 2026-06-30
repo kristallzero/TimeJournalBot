@@ -1,6 +1,6 @@
 import { InlineKeyboard } from 'grammy';
 import { query } from './db.js';
-import { formatTime, formatDuration } from './log.js';
+import { durationBetween, formatTime, formatDuration } from './log.js';
 
 export function buildWeekKeyboard(offset) {
     const kb = new InlineKeyboard().text('◀ Prev', `week:${offset - 1}`);
@@ -70,7 +70,7 @@ export async function renderWeek(userId, tz, offset = 0) {
                 );
                 if (stop) {
                     skipped.add(stop.id);
-                    output.push(`${time}  ${log.emoji}  ${log.label} — ${formatDuration(new Date(stop.ts) - new Date(log.ts))}`);
+                    output.push(`${time}  ${log.emoji}  ${log.label} — ${formatDuration(durationBetween(log.ts, stop.ts))}`);
                 } else {
                     output.push(`${time}  ${log.emoji}  ${log.label} — ${offset === 0 ? '⏳ running' : 'no end'}`);
                 }

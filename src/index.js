@@ -3,7 +3,7 @@ import { Bot } from 'grammy';
 import { upsertUser, seedDefaultEvents, getEvents } from './seed.js';
 import { buildLogKeyboard, handleLogTap, buildDeleteButton, deleteLog } from './logs.js';
 import { buildKeyboard } from './keyboard.js';
-import { findEventByButton, insertLog, formatTime, findActiveSession, findAllActiveSessions, formatDuration } from './log.js';
+import { durationBetween, findEventByButton, insertLog, formatTime, findActiveSession, findAllActiveSessions, formatDuration } from './log.js';
 import { query } from './db.js';
 import renderToday, { buildTodayKeyboard } from './today.js';
 import { renderActive } from './active.js';
@@ -227,7 +227,7 @@ bot.on('message:text', async (ctx) => {
         return ctx.reply(`${event.emoji} ${event.label} started — ${formatTime(log.ts, tz)}`);
     } else {
         const log = await insertLog(userId, event.id, 'stop');
-        const elapsed = formatDuration(new Date(log.ts) - new Date(active.ts));
+        const elapsed = formatDuration(durationBetween(active.ts, log.ts));
         return ctx.reply(`${event.emoji} ${event.label} stopped — ${formatTime(log.ts, tz)} (${elapsed})`);
     }
 });
